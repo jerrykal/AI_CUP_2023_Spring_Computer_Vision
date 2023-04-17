@@ -45,32 +45,27 @@ def main(args):
     load_weights = args.load_weights
     save_video = args.save_video
 
-    for split in ["val", "test"]:
-        split_path = os.path.join(dataset_path, split)
+    for data in sorted(os.listdir(dataset_path)):
+        data_path = os.path.join(dataset_path, data)
 
-        for data in sorted(os.listdir(split_path)):
-            data_path = os.path.join(split_path, data)
+        video_path = os.path.join(data_path, f"{data}.mp4")
 
-            video_path = os.path.join(data_path, f"{data}.mp4")
+        coords = predict(video_path, load_weights)
+        coords = smooth_trajectory(coords)
 
-            coords = predict(video_path, load_weights)
-            coords = smooth_trajectory(coords)
+        output_file = f"{data}_trajectory.csv"
+        output_path = os.path.join(data_path, output_file)
 
-            output_file = f"{data}_trajectory.csv"
-            output_path = os.path.join(data_path, output_file)
+        with open(output_path, "w") as f:
+            f.write("Frame,Visibility,X,Y\n")
+            for frame, coord in enumerate(coords):
+                if np.isnan(coord).any():
+                    f.write(f"{frame},0,0,0\n")
+                else:
+                    f.write(f"{frame},1,{int(coord[0])},{int(coord[1])}\n")
 
-            with open(output_path, "w") as f:
-                f.write("Frame,Visibility,X,Y\n")
-                for frame, coord in enumerate(coords):
-                    if np.isnan(coord).any():
-                        f.write(f"{frame},0,0,0\n")
-                    else:
-                        f.write(f"{frame},1,{int(coord[0])},{int(coord[1])}\n")
-
-            if save_video:
-                plot_shuttle_cock(
-                    coords, video_path, output_path.replace(".csv", ".mp4")
-                )
+        if save_video:
+            plot_shuttle_cock(coords, video_path, output_path.replace(".csv", ".mp4"))
 
 
 if __name__ == "__main__":
