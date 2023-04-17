@@ -3,9 +3,9 @@ import os
 import cv2
 import pandas as pd
 
-data_dir = os.path.join(os.path.dirname(__file__), "dataset/rally/train")
+data_dir = os.path.join(os.path.dirname(__file__), "datasets/rally/train")
 
-hit_frames_dir = os.path.join(os.path.dirname(__file__), "dataset/hit_frames/")
+hit_frames_dir = os.path.join(os.path.dirname(__file__), "datasets/hit_frames/")
 if not os.path.exists(hit_frames_dir):
     os.mkdir(hit_frames_dir)
 
