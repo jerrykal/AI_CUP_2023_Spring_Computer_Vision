@@ -9,8 +9,10 @@ def get_background(cap):
     frames = []
 
     # Randomly sample 50 frames
-    for _ in range(50):
-        cap.set(cv2.CAP_PROP_POS_FRAMES, np.random.randint(0, frame_count))
+    for i in np.random.choice(
+        range(frame_count), size=min(frame_count, 50), replace=False
+    ):
+        cap.set(cv2.CAP_PROP_POS_FRAMES, i)
         _, frame = cap.read()
         frames.append(frame)
 
@@ -33,16 +35,17 @@ def adjust_gamma(image, gamma=1.0):
 
 def get_white_line_region(gray):
     dist_tau = 3
-    intensity_threshold = 40
+    intensity_threshold = 35
 
     white_line_region = np.zeros_like(gray)
+    gray = gray.astype(np.int16)
 
     for i in range(len(gray)):
         for j in range(dist_tau, len(gray[0]) - dist_tau):
             if (
                 gray[i, j] > 180
-                and int(gray[i, j]) - int(gray[i, j - dist_tau]) > intensity_threshold
-                and int(gray[i, j]) - int(gray[i, j + dist_tau]) > intensity_threshold
+                and gray[i, j] - gray[i, j - dist_tau] > intensity_threshold
+                and gray[i, j] - gray[i, j + dist_tau] > intensity_threshold
             ):
                 white_line_region[i, j] = 255
 
@@ -50,8 +53,8 @@ def get_white_line_region(gray):
         for j in range(len(gray[0])):
             if (
                 gray[i, j] > 180
-                and int(gray[i, j]) - int(gray[i - dist_tau, j]) > intensity_threshold
-                and int(gray[i, j]) - int(gray[i + dist_tau, j]) > intensity_threshold
+                and gray[i, j] - gray[i - dist_tau, j] > intensity_threshold
+                and gray[i, j] - gray[i + dist_tau, j] > intensity_threshold
             ):
                 white_line_region[i, j] = 255
 
@@ -66,7 +69,7 @@ def get_hough_lines(gray):
     blur = cv2.GaussianBlur(gray, (kernel_size, kernel_size), 0).astype(int)
     sub = gray.astype(int) - blur
     sharped_img = np.clip(gray.astype(int) + sub * 2, a_min=0, a_max=255).astype(
-        "uint8"
+        np.uint8
     )
 
     # Detect edges
@@ -103,8 +106,8 @@ def interpolate(line):
     ).astype(int)
 
 
-def check_white(hsv, lines, set_i, white_region):
-    line_mask = np.zeros(hsv.shape[:2], "uint8")
+def check_white(image, lines, set_i, white_region):
+    line_mask = np.zeros(image.shape[:2], "uint8")
     for line_id in set_i:
         x1, y1, x2, y2 = lines[line_id]
         cv2.line(line_mask, (x1, y1), (x2, y2), (255, 255, 255), 1)
@@ -112,7 +115,6 @@ def check_white(hsv, lines, set_i, white_region):
 
     white_line_region = np.logical_and(line_mask, white_region)
 
-    cv2.destroyAllWindows()
     return (white_line_region.sum() / line_mask.sum()) > 0.03
 
 

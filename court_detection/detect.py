@@ -8,6 +8,9 @@ from utils import (check_white, filter_set, find_edge, find_intersection,
 
 
 def detect_court_corners(video_path):
+    # Fix random seeds
+    np.random.seed(0)
+
     # Construct background model
     cap = cv2.VideoCapture(video_path)
     image = get_background(cap)
@@ -22,13 +25,22 @@ def detect_court_corners(video_path):
     green = np.uint8([[[0, 255, 0]]])
     hsv_green = cv2.cvtColor(green, cv2.COLOR_BGR2HSV)
     lower_green = hsv_green - [20, 255, 200]
-    upper_green = hsv_green + [30, 0, 0]
+    upper_green = hsv_green + [40, 0, 0]
 
-    mask = cv2.inRange(hsv, lower_green, upper_green)
-    mask = cv2.erode(mask.astype(np.float32), None, iterations=3)
-    mask = cv2.dilate(mask.astype(np.float32), None, iterations=10)
-    mask = cv2.erode(mask, None, iterations=15)
-    mask = np.stack((mask, mask, mask), 2)
+    green_region = cv2.inRange(hsv, lower_green, upper_green)
+    green_region = cv2.erode(green_region.astype(np.float32), None, iterations=5)
+
+    # The contour with the largest area should be the court
+    contours, _ = cv2.findContours(
+        green_region.astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
+    )
+    largest_contour = max(contours, key=cv2.contourArea)
+    court_region = np.zeros_like(green_region)
+    cv2.drawContours(court_region, [largest_contour], -1, 255, -1)
+
+    court_region = cv2.dilate(court_region.astype(np.float32), None, iterations=10)
+    court_region = cv2.erode(court_region, None, iterations=15)
+    court_region = np.stack((court_region, court_region, court_region), 2)
 
     # Use Hough transform to find straight lines
     lines = get_hough_lines(gray)
@@ -38,9 +50,18 @@ def detect_court_corners(video_path):
 
     for line in lines.reshape(-1, 4):
         full_line = interpolate(line)
-        check = mask[:, :, 0][full_line[:, 1], full_line[:, 0]]
+        check = court_region[:, :, 0][full_line[:, 1], full_line[:, 0]]
         if check.sum() >= len(check) * 0.5:
             court_lines.append(line)
+
+    # Filter out lines based on if the lines satify the line structure contrain
+    # See section 3.1 of https://www.researchgate.net/publication/220979520_Robust_camera_calibration_for_sport_videos_using_court_models
+    white_line_region = get_white_line_region(gray)
+    court_lines = [
+        line
+        for i, line in enumerate(court_lines)
+        if check_white(image, court_lines, [i], white_line_region)
+    ]
 
     # Extend straight lines
     extended_court_lines = []
@@ -77,14 +98,8 @@ def detect_court_corners(video_path):
             extended_court_lines[idx_is_height:], key=lambda x: x[0]
         )
     extended_court_lines = merge_lines(extended_court_lines)
-
-    # Filter out lines based on if the lines satify the line structure contrain
-    # See section 3.1 of https://www.researchgate.net/publication/220979520_Robust_camera_calibration_for_sport_videos_using_court_models
-    white_line_region = get_white_line_region(gray)
     line_set = [
-        i
-        for i in lines_clustering(extended_court_lines, threshold=8)
-        if len(i) > 1 and check_white(hsv, extended_court_lines, i, white_line_region)
+        i for i in lines_clustering(extended_court_lines, threshold=8) if len(i) > 1
     ]
 
     fake_sets = filter_set(extended_court_lines, line_set, height, width)
@@ -140,22 +155,29 @@ def detect_court_corners(video_path):
                 test = cv2.fillPoly(test, pts, (1, 1, 1)).astype(bool)
 
                 if (
-                    np.logical_and(mask[..., 0], test).sum() > max_win
-                    and np.logical_and(mask[..., 0], test).sum() * 100 / test.sum() > 80
+                    np.logical_and(court_region[..., 0], test).sum() > max_win
+                    and np.logical_and(court_region[..., 0], test).sum()
+                    * 100
+                    / test.sum()
+                    > 80
                 ):
                     print("new winner:")
-                    max_win = np.logical_and(mask[..., 0], test).sum()
+                    max_win = np.logical_and(court_region[..., 0], test).sum()
                     best = ((l1, l2), (l3, l4))
 
                 print(
                     "{} {} count {}/{}, {:.2f}, {}".format(
                         (l1, l2),
                         (l3, l4),
-                        np.logical_and(mask[..., 0], test).sum(),
+                        np.logical_and(court_region[..., 0], test).sum(),
                         test.sum(),
-                        np.logical_and(mask[..., 0], test).sum() * 100 / test.sum(),
+                        np.logical_and(court_region[..., 0], test).sum()
+                        * 100
+                        / test.sum(),
                         ""
-                        if np.logical_and(mask[..., 0], test).sum() * 100 / test.sum()
+                        if np.logical_and(court_region[..., 0], test).sum()
+                        * 100
+                        / test.sum()
                         < 80
                         else "good",
                     )
@@ -171,12 +193,23 @@ def detect_court_corners(video_path):
     lr = np.array(find_intersection(fake_sets[l2][1], fake_sets[l4][1]), dtype=np.int32)
     ll = np.array(find_intersection(fake_sets[l2][1], fake_sets[l3][0]), dtype=np.int32)
 
-    # cv2.circle(image, (ul[0], ul[1]), 5, (255, 0, 0), -1)
-    # cv2.circle(image, (ur[0], ur[1]), 5, (0, 255, 0), -1)
-    # cv2.circle(image, (lr[0], lr[1]), 5, (0, 0, 255), -1)
-    # cv2.circle(image, (ll[0], ll[1]), 5, (0, 255, 255), -1)
-    # cv2.imshow("Court Corners", image)
-    # cv2.waitKey(0)
-    # cv2.destroyAllWindows()
+    court_overlay = image.copy()
+    pts = np.array([[ul, ur, lr, ll]]).astype(np.int32)
+    cv2.fillPoly(court_overlay, pts, (255, 0, 255))
 
-    return ul, ur, lr, ll
+    cv2.addWeighted(court_overlay, 0.7, image, 0.3, 0, image)
+
+    cv2.circle(image, (ul[0], ul[1]), 5, (0, 0, 255), -1)
+    cv2.circle(image, (ur[0], ur[1]), 5, (0, 255, 0), -1)
+    cv2.circle(image, (lr[0], lr[1]), 5, (255, 0, 0), -1)
+    cv2.circle(image, (ll[0], ll[1]), 5, (0, 255, 255), -1)
+
+    return ul, ur, lr, ll, image
+
+
+# video_path = "datasets/rally/train/00001/00001.mp4"
+# _, _, _, _, image = detect_court_corners(video_path)
+
+# cv2.imshow("Court Corners", image)
+# cv2.waitKey(0)
+# cv2.destroyAllWindows()
