@@ -45,7 +45,7 @@ def main(args):
 
     if len(failed_case) != 0:
         with open("failed_case.txt", "a") as f:
-            f.write("\n".join(failed_case))
+            f.write("\n".join(failed_case) + "\n")
 
 
 if __name__ == "__main__":

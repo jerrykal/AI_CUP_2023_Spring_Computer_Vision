@@ -30,6 +30,9 @@ def detect_court_corners(video_path):
     green_region = cv2.inRange(hsv, lower_green, upper_green)
     green_region = cv2.erode(green_region.astype(np.float32), None, iterations=5)
 
+    green_region = cv2.dilate(green_region.astype(np.float32), None, iterations=8)
+    green_region = cv2.erode(green_region, None, iterations=15)
+
     # The contour with the largest area should be the court
     contours, _ = cv2.findContours(
         green_region.astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
@@ -37,9 +40,6 @@ def detect_court_corners(video_path):
     largest_contour = max(contours, key=cv2.contourArea)
     court_region = np.zeros_like(green_region)
     cv2.drawContours(court_region, [largest_contour], -1, 255, -1)
-
-    court_region = cv2.dilate(court_region.astype(np.float32), None, iterations=10)
-    court_region = cv2.erode(court_region, None, iterations=15)
     court_region = np.stack((court_region, court_region, court_region), 2)
 
     # Use Hough transform to find straight lines
