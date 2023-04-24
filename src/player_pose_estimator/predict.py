@@ -2,6 +2,7 @@ from mmpose.apis import inference_topdown
 from mmpose.apis import init_model as init_pose_estimator
 from mmpose.evaluation.functional import nms
 from mmpose.registry import VISUALIZERS
+from mmpose.structures import merge_data_samples, split_instances
 from mmpose.utils import adapt_mmdet_pipeline
 
 try:
@@ -93,7 +94,7 @@ def predict(
             if len(keypoints) < 17:
                 continue
 
-            left_foot = (int(keypoints[16][0]), int(keypoints[16][1]))
+            left_foot = (int(keypoints[15][0]), int(keypoints[15][1]))
 
             if (
                 len(player_pose_candidates) < 2
@@ -104,19 +105,19 @@ def predict(
 
             if len(near_player_poses) > 0 and near_player_poses[-1] is not None:
                 dist_to_last_near_player[idx] = np.linalg.norm(
-                    np.array(near_player_poses[-1].pred_instances.keypoints[0][16])
+                    np.array(near_player_poses[-1].pred_instances.keypoints[0][15])
                     - np.array(left_foot)
                 )
 
             if len(far_player_poses) > 0 and far_player_poses[-1] is not None:
                 dist_to_last_far_player[idx] = np.linalg.norm(
-                    np.array(far_player_poses[-1].pred_instances.keypoints[0][16])
+                    np.array(far_player_poses[-1].pred_instances.keypoints[0][15])
                     - np.array(left_foot)
                 )
 
         if len(player_pose_candidates) == 2:
             left_foot_y = [
-                pose_preds[i].pred_instances.keypoints[0][16][1]
+                pose_preds[i].pred_instances.keypoints[0][15][1]
                 for i in player_pose_candidates
             ]
             near_player_poses.append(
@@ -133,14 +134,14 @@ def predict(
         ):
             if len(player_pose_candidates) == 1:
                 candidate_pose = pose_preds[player_pose_candidates[0]]
-                candidate_left_foot = candidate_pose.pred_instances.keypoints[0][16]
+                candidate_left_foot = candidate_pose.pred_instances.keypoints[0][15]
 
                 dist_1 = np.linalg.norm(
-                    np.array(near_player_poses[-1].pred_instances.keypoints[0][16])
+                    np.array(near_player_poses[-1].pred_instances.keypoints[0][15])
                     - np.array(candidate_left_foot)
                 )
                 dist_2 = np.linalg.norm(
-                    np.array(far_player_poses[-1].pred_instances.keypoints[0][16])
+                    np.array(far_player_poses[-1].pred_instances.keypoints[0][15])
                     - np.array(candidate_left_foot)
                 )
 
@@ -234,7 +235,7 @@ def main():
     )
 
     # Estimate player poses
-    near_player_poses, far_player_poses, all_poses = predict(
+    near_player_poses, far_player_poses, _ = predict(
         args.video_path, args.court_path, detector, pose_estimator
     )
 
