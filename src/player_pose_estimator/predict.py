@@ -252,7 +252,7 @@ def main():
         # Save video
         flush_to_video(
             args.video_path,
-            args.video_path.replace(".mp4", "_player_pose.mp4"),
+            args.video_path.replace(".mp4", "_player_poses.mp4"),
             near_player_poses,
             far_player_poses,
             visualizer,
@@ -260,7 +260,7 @@ def main():
 
     # Save near and far player poses to csv
     flush_to_csv(
-        args.video_path.replace(".mp4", "_player_pose.csv"),
+        args.video_path.replace(".mp4", "_player_poses.csv"),
         near_player_poses,
         far_player_poses,
     )

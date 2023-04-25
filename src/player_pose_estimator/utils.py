@@ -28,21 +28,22 @@ def flush_to_video(
         if far_player_pose is not None:
             player_poses.append(far_player_pose)
 
-        visualizer.add_datasample(
-            "result",
-            frame,
-            data_sample=merge_data_samples(player_poses),
-            draw_gt=False,
-            draw_heatmap=False,
-            draw_bbox=False,
-            show_kpt_idx=False,
-            skeleton_style="mmpose",
-            show=False,
-            wait_time=0,
-            kpt_thr=0.3,
-        )
+        if len(player_poses) > 0:
+            visualizer.add_datasample(
+                "result",
+                frame,
+                data_sample=merge_data_samples(player_poses),
+                draw_gt=False,
+                draw_heatmap=False,
+                draw_bbox=False,
+                show_kpt_idx=False,
+                skeleton_style="mmpose",
+                show=False,
+                wait_time=0,
+                kpt_thr=0.3,
+            )
 
-        out.write(visualizer.get_image())
+            out.write(visualizer.get_image())
 
     cap.release()
     out.release()
