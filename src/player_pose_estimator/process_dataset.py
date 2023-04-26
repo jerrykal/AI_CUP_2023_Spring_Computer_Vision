@@ -15,7 +15,7 @@ from utils import flush_to_csv, flush_to_video
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--dataset_root", type=str, required=True)
+    parser.add_argument("--dataset_path", type=str, required=True)
     parser.add_argument(
         "--det_config", help="Config file for detection", type=str, required=True
     )
@@ -45,7 +45,7 @@ def parse_args():
 
 
 def main(args):
-    dataset_root = args.dataset_root
+    dataset_path = args.dataset_path
     det_config = args.det_config
     det_checkpoint = args.det_checkpoint
     pose_config = args.pose_config
@@ -69,11 +69,11 @@ def main(args):
             pose_estimator.dataset_meta, skeleton_style="mmpose"
         )
 
-    for data in sorted(os.listdir(dataset_root)):
-        data_root = os.path.join(dataset_root, data)
+    for data in sorted(os.listdir(dataset_path)):
+        data_path = os.path.join(dataset_path, data)
 
-        video_path = os.path.join(data_root, f"{data}.mp4")
-        court_path = os.path.join(data_root, f"{data}_court.csv")
+        video_path = os.path.join(data_path, f"{data}.mp4")
+        court_path = os.path.join(data_path, f"{data}_court.csv")
 
         print(f"Processing {video_path}... ", end="", flush=True)
 
