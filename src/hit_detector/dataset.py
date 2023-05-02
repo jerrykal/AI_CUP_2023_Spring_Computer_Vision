@@ -12,8 +12,8 @@ from torch.utils.data import Dataset
 
 class HitNetDataset(Dataset):
     def __init__(self, features, labels=None):
-        self.features = features
-        self.labels = labels
+        self.features = torch.FloatTensor(features)
+        self.labels = torch.LongTensor(labels) if labels is not None else None
 
     def __getitem__(self, idx):
         if self.labels is not None:
@@ -22,6 +22,11 @@ class HitNetDataset(Dataset):
 
     def __len__(self):
         return len(self.features)
+
+    def get_sample_weights(self):
+        """Get sample weights for WeightedRandomSampler."""
+        class_count = [sum(self.labels == i) for i in range(3)]
+        return [1.0 / class_count[i] for i in self.labels.numpy()]
 
 
 FEAT_COLS = [
@@ -90,23 +95,7 @@ def preprocess_data(dataset_path, data_id, concat_n, stepsize, data_type="train"
             os.path.join(dataset_path, data_id, f"{data_id}_hitnet_y.csv")
         )
         features, labels = concat_frames(features, labels, concat_n, stepsize)
-        return torch.FloatTensor(features), torch.LongTensor(labels)
+        return features, labels
 
     features = concat_frames(features, None, concat_n, stepsize)
-    return torch.FloatTensor(features)
-
-
-def balance_dataset(dataset):
-    near_hit_count = torch.count_nonzero(dataset.labels == 1)
-    far_hit_count = torch.count_nonzero(dataset.labels == 2)
-
-    balanced_no_hit_count = (near_hit_count + far_hit_count) // 2
-
-    no_hit_indices = torch.where(dataset.labels == 0)[0].numpy()
-    hit_indices = torch.where(dataset.labels != 0)[0].numpy()
-    np.random.shuffle(no_hit_indices)
-
-    new_indices = np.concatenate([no_hit_indices[:balanced_no_hit_count], hit_indices])
-
-    dataset.features = dataset.features[new_indices]
-    dataset.labels = dataset.labels[new_indices]
+    return features

@@ -98,9 +98,7 @@ def main(args):
         df_traj = pd.read_csv(
             os.path.join(args.data_dir, data, f"{data}_trajectory.csv")
         )
-        df_court = pd.read_csv(
-            os.path.join(args.data_dir, data, f"{data}_court.csv")
-        )
+        df_court = pd.read_csv(os.path.join(args.data_dir, data, f"{data}_court.csv"))
         df_pose = pd.read_csv(
             os.path.join(args.data_dir, data, f"{data}_player_poses.csv")
         )
