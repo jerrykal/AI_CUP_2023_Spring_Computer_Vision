@@ -11,13 +11,13 @@ from dataset import HitNetDataset, preprocess_data
 from model import HitNet
 
 
-def inference(model, dataset):
+def inference(model, dataset, device):
     hit_probs = np.empty((len(dataset), 3), dtype=np.float32)
 
     model.eval()
     with torch.no_grad():
         for i, feature in enumerate(dataset):
-            feature = feature.unsqueeze(0)
+            feature = feature.unsqueeze(0).to(device)
             output = model(feature)
 
             hit_probs[i] = F.softmax(output, dim=-1).detach().cpu().numpy()[0]
@@ -128,7 +128,7 @@ def main(args):
     model.load_state_dict(torch.load(args.model_path, map_location=args.device))
 
     # Run inference
-    hit_probs = inference(model, dataset).cpu().numpy()
+    hit_probs = inference(model, dataset, device=args.device)
 
     # Print out raw predictions
     for hit_prob in hit_probs:
