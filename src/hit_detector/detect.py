@@ -49,12 +49,6 @@ def optimize_hit_score(hit_probs, fps):
     for f in range(1, fnum):
         dp[f] = {}
 
-        # Get frame indices of positive hit labels
-        hit_labels = [
-            (i, label) for i, label in enumerate(dp[f - 1][0][1]) if label != 0
-        ]
-        last_hit_label = (-0.5 * fps, 0) if len(hit_labels) == 0 else hit_labels[-1]
-
         # Assigning not hit to current frame
         dp[f][0] = max(
             [
@@ -77,27 +71,50 @@ def optimize_hit_score(hit_probs, fps):
             key=lambda x: x[0],
         )
 
-        # 2 constraints: (1) consec hits must be 0.5s apart, (2) hits must alternate between players
+        # For enforcing number of hits smaller than numsecs
+        maxhits_allowed = math.ceil(f / fps) + 1
 
-        # Assigning near_hit to current frame
-        if (f - last_hit_label[0] > 0.5 * fps) and (last_hit_label[1] != 1):
-            dp[f][1] = (
-                dp[f - 1][0][0] + hit_probs[f, 1],
-                dp[f - 1][0][1] + [1],
-                dp[f - 1][0][2] + 1,
-            )
-        else:
-            dp[f][1] = (0, [], 0)
+        # 3 constraints: (1) consec hits must be 0.5s apart, (2) numhits < numsecs, (3) hits must alternate between players
 
-        # Assigning far_hit to current frame
-        if (f - last_hit_label[0] > 0.5 * fps) and (last_hit_label[1] != 2):
-            dp[f][2] = (
-                dp[f - 1][0][0] + hit_probs[f, 2],
-                dp[f - 1][0][1] + [2],
-                dp[f - 1][0][2] + 1,
-            )
-        else:
-            dp[f][2] = (0, [], 0)
+        dp[f][1] = (-np.inf, [], 0)
+        dp[f][2] = (-np.inf, [], 0)
+
+        for t in range(f):
+            # Get frame indices of positive hit labels
+            hit_labels = [
+                (i, label) for i, label in enumerate(dp[t][0][1]) if label != 0
+            ]
+            last_hit_label = (-0.3 * fps, 0) if len(hit_labels) == 0 else hit_labels[-1]
+
+            # Assigning near_hit to current frame
+            if (
+                (f - last_hit_label[0] > 0.3 * fps)
+                # and (dp[f - 1][0][2] < maxhits_allowed)
+                and (last_hit_label[1] != 1)
+            ):
+                dp[f][1] = max(
+                    dp[f][1],
+                    (
+                        dp[t][0][0] + hit_probs[f, 1],
+                        dp[t][0][1] + [0 for _ in range(f - t - 1)] + [1],
+                        dp[t][0][2] + 1,
+                    ),
+                )
+
+            # Assigning far_hit to current frame
+            if (
+                (f - last_hit_label[0] > 0.3 * fps)
+                # and (dp[f - 1][0][2] < maxhits_allowed)
+                and (last_hit_label[1] != 2)
+            ):
+                dp[f][2] = max(
+                    dp[f][2],
+                    (
+                        dp[t][0][0] + hit_probs[f, 2],
+                        dp[t][0][1] + [0 for _ in range(f - t - 1)] + [2],
+                        dp[t][0][2] + 1,
+                    ),
+                )
 
     return (
         dp[fnum - 1][0][0],
