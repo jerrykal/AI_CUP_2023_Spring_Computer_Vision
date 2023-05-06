@@ -125,7 +125,7 @@ def main(args):
             }
             df_answer.loc[len(df_answer)] = new_row
 
-        df_answer.Winner.values[-1] = df_answer.Hitter.values[-1]
+        df_answer.Winner.values[-1] = "A" if df_answer.Hitter.values[-1] == "B" else "B"
         cap.release()
 
         print("Done!")
