@@ -61,6 +61,7 @@ def main(args):
 
         df_hit = pd.read_csv(os.path.join(data_path, f"{data_id}_hit.csv"))
         df_pose = pd.read_csv(os.path.join(data_path, f"{data_id}_player_poses.csv"))
+        df_shot_type = pd.read_csv(os.path.join(data_path, f"{data_id}_shot_type.csv"))
         for _, row in df_hit.iterrows():
             # Extract hit frame image
             cap.set(cv2.CAP_PROP_POS_FRAMES, row["HitFrame"])
@@ -105,22 +106,30 @@ def main(args):
                 "Hitter": row["Hitter"],
                 "RoundHead": 0,
                 "Backhand": 0,
-                "BallHeight": 0,
+                "BallHeight": 1
+                if (
+                    player_poses[1 if row["Hitter"] == "A" else 0][6][1]
+                    - player_poses[1 if row["Hitter"] == "A" else 0][10][1]
+                    > 20
+                )
+                else 2,
                 "LandingX": 0,
                 "LandingY": 0,
                 "HitterLocationX": int(
-                    player_locations[1 if row["Hitter"] == "a" else 0][0]
+                    player_locations[1 if row["Hitter"] == "A" else 0][0]
                 ),
                 "HitterLocationY": int(
-                    player_locations[1 if row["Hitter"] == "a" else 0][1]
+                    player_locations[1 if row["Hitter"] == "A" else 0][1]
                 ),
                 "DefenderLocationX": int(
-                    player_locations[0 if row["Hitter"] == "a" else 1][0]
+                    player_locations[0 if row["Hitter"] == "A" else 1][0]
                 ),
                 "DefenderLocationY": int(
-                    player_locations[0 if row["Hitter"] == "a" else 1][1]
+                    player_locations[0 if row["Hitter"] == "A" else 1][1]
                 ),
-                "BallType": 0,
+                "BallType": df_shot_type[df_shot_type["ShotSeq"] == row["ShotSeq"]][
+                    "BallType"
+                ].values[0],
                 "Winner": "X",
             }
             df_answer.loc[len(df_answer)] = new_row
