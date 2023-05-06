@@ -205,11 +205,3 @@ def detect_court_corners(video_path):
     cv2.circle(image, (ll[0], ll[1]), 5, (0, 255, 255), -1)
 
     return ul, ur, lr, ll, image
-
-
-# video_path = "datasets/rally/train/00001/00001.mp4"
-# _, _, _, _, image = detect_court_corners(video_path)
-
-# cv2.imshow("Court Corners", image)
-# cv2.waitKey(0)
-# cv2.destroyAllWindows()
