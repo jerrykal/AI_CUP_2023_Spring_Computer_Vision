@@ -125,7 +125,7 @@ def optimize_hit_score(hit_probs, fps):
 
 def main(args):
     data_id = f"{args.data_id:05d}"
-    offset = args.concat_n - 1
+    offset = math.ceil(args.concat_n * 0.75) - 1
 
     cap = cv2.VideoCapture(os.path.join(args.dataset_path, data_id, f"{data_id}.mp4"))
     width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
