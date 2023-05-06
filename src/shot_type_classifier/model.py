@@ -3,7 +3,14 @@ import torch.nn as nn
 
 
 class ShotTypeClassifier(nn.Module):
-    def __init__(self, input_size, hidden_size, num_layers, num_classes, dropout_prob):
+    def __init__(
+        self,
+        input_size=11,
+        hidden_size=128,
+        num_layers=2,
+        num_classes=9,
+        dropout_prob=0.5,
+    ):
         super().__init__()
 
         self.embedding = nn.Linear(input_size, hidden_size)

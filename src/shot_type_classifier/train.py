@@ -23,7 +23,7 @@ def parse_args():
     parser.add_argument("--save_path", type=str)
 
     # Hyperparameters
-    parser.add_argument("--hidden_size", type=int, default=32)
+    parser.add_argument("--hidden_size", type=int, default=128)
     parser.add_argument("--num_layers", type=int, default=2)
     parser.add_argument("--dropout_prob", type=float, default=0.5)
     parser.add_argument("--num_epoch", type=int, default=500)
