@@ -44,6 +44,21 @@ def parse_args():
     return parser.parse_args()
 
 
+def is_amateur(video_path):
+    """Check if the video is amateur or professional"""
+    cap = cv2.VideoCapture(video_path)
+
+    # Get the middle frame
+    len = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    cap.set(cv2.CAP_PROP_POS_FRAMES, len // 2)
+    _, img = cap.read()
+    cap.release()
+
+    top_left_corner = img[: img.shape[0] // 4, : img.shape[1] // 3, :]
+
+    return top_left_corner.sum() > 30000000
+
+
 def main(args):
     dataset_path = args.dataset_path
     det_config = args.det_config
@@ -79,7 +94,11 @@ def main(args):
 
         try:
             near_player_poses, far_player_poses, all_poses = predict(
-                video_path, court_path, detector, pose_estimator
+                video_path,
+                court_path,
+                detector,
+                pose_estimator,
+                50 if is_amateur(video_path) else 30,
             )
         except Exception as e:
             with open("exceptions.txt", "a") as f:

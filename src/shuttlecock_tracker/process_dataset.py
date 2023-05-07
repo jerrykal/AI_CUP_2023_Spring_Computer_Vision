@@ -40,6 +40,46 @@ def plot_shuttle_cock(coords, video_path, output_path):
     out.release()
 
 
+def is_amateur(video_path):
+    """Check if the video is amateur or professional"""
+    cap = cv2.VideoCapture(video_path)
+
+    # Get the middle frame
+    len = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    cap.set(cv2.CAP_PROP_POS_FRAMES, len // 2)
+    _, img = cap.read()
+    cap.release()
+
+    top_left_corner = img[: img.shape[0] // 4, : img.shape[1] // 3, :]
+
+    return top_left_corner.sum() > 30000000
+
+
+def mask_amateur_vid(video_path):
+    """Add a polygon mask to the right side of the video to blockout noises"""
+    cap = cv2.VideoCapture(video_path)
+    output_path = video_path.replace(".mp4", "_masked.mp4")
+
+    # Define the codec and create VideoWriter object
+    fourcc = cv2.VideoWriter_fourcc(*"mp4v")
+    out = cv2.VideoWriter(output_path, fourcc, 30.0, (1280, 720))
+
+    mask_pts = np.array([[890, 350], [1280, 500], [1280, 0], [890, 0]])
+    while cap.isOpened():
+        ret, frame = cap.read()
+        if not ret:
+            break
+
+        cv2.fillPoly(frame, pts=[mask_pts], color=(0, 0, 0))
+
+        out.write(frame)
+
+    cap.release()
+    out.release()
+
+    return output_path
+
+
 def main(args):
     dataset_path = args.dataset_path
     load_weights = args.load_weights
@@ -49,6 +89,9 @@ def main(args):
         data_path = os.path.join(dataset_path, data)
 
         video_path = os.path.join(data_path, f"{data}.mp4")
+
+        if is_amateur(video_path):
+            video_path = mask_amateur_vid(video_path)
 
         coords = predict(video_path, load_weights)
         coords = smooth_trajectory(coords)

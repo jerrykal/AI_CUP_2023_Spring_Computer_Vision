@@ -11,6 +11,21 @@ def parse_args():
     return parser.parse_args()
 
 
+def is_amateur(video_path):
+    """Check if the video is amateur or professional"""
+    cap = cv2.VideoCapture(video_path)
+
+    # Get the middle frame
+    len = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    cap.set(cv2.CAP_PROP_POS_FRAMES, len // 2)
+    _, img = cap.read()
+    cap.release()
+
+    top_left_corner = img[: img.shape[0] // 4, : img.shape[1] // 3, :]
+
+    return top_left_corner.sum() > 30000000
+
+
 def main(args):
     dataset_path = args.dataset_path
 
@@ -21,14 +36,18 @@ def main(args):
 
         video_path = os.path.join(data_path, f"{data}.mp4")
 
-        try:
-            ul, ur, lr, ll, image = detect_court_corners(video_path)
-        except KeyboardInterrupt:
-            return
-        except:
-            print(f"Failed to detect court corners for {data}")
-            failed_case.append(video_path)
-            continue
+        if is_amateur(video_path):
+            image = None
+            ul, ur, lr, ll = [[500, 355], [20, 650], [1215, 615], [790, 350]]
+        else:
+            try:
+                ul, ur, lr, ll, image = detect_court_corners(video_path)
+            except KeyboardInterrupt:
+                return
+            except:
+                print(f"Failed to detect court corners for {data}")
+                failed_case.append(video_path)
+                continue
 
         output_file = f"{data}_court.csv"
         output_path = os.path.join(data_path, output_file)
@@ -41,7 +60,8 @@ def main(args):
                 f"{ul[0]},{ul[1]},{ur[0]},{ur[1]},{lr[0]},{lr[1]},{ll[0]},{ll[1]}\n"
             )
 
-        cv2.imwrite(output_path.replace(".csv", ".jpg"), image)
+        if image is not None:
+            cv2.imwrite(output_path.replace(".csv", ".jpg"), image)
 
     if len(failed_case) != 0:
         with open("failed_case.txt", "a") as f:

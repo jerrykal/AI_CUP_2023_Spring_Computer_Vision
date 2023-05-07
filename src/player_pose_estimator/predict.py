@@ -43,6 +43,7 @@ def predict(
     court_path,
     detector,
     pose_estimator,
+    dist_thresh,
 ):
     # Load video
     cap = cv2.VideoCapture(video_path)
@@ -149,13 +150,13 @@ def predict(
                     near_player_poses.append(candidate_pose)
 
                     far_cand = np.argmin(dist_to_last_far_player)
-                    if dist_to_last_far_player[far_cand] < 30:
+                    if dist_to_last_far_player[far_cand] < dist_thresh:
                         far_player_poses.append(pose_preds[far_cand])
                     else:
                         far_player_poses.append(far_player_poses[-1])
                 else:
                     near_cand = np.argmin(dist_to_last_near_player)
-                    if dist_to_last_near_player[near_cand] < 30:
+                    if dist_to_last_near_player[near_cand] < dist_thresh:
                         near_player_poses.append(pose_preds[near_cand])
                     else:
                         near_player_poses.append(near_player_poses[-1])
@@ -163,13 +164,13 @@ def predict(
                     far_player_poses.append(candidate_pose)
             else:
                 near_cand = np.argmin(dist_to_last_near_player)
-                if dist_to_last_near_player[near_cand] < 30:
+                if dist_to_last_near_player[near_cand] < dist_thresh:
                     near_player_poses.append(pose_preds[near_cand])
                 else:
                     near_player_poses.append(near_player_poses[-1])
 
                 far_cand = np.argmin(dist_to_last_far_player)
-                if dist_to_last_far_player[far_cand] < 30:
+                if dist_to_last_far_player[far_cand] < dist_thresh:
                     far_player_poses.append(pose_preds[far_cand])
                 else:
                     far_player_poses.append(far_player_poses[-1])
