@@ -17,15 +17,13 @@ def main(args):
     model.load_state_dict(torch.load(args.model_path, map_location=args.device))
 
     for data_id in sorted(os.listdir(args.dataset_path)):
-        if int(data_id) > 2:
-            break
         print(f"Processing {data_id}... ", end="", flush=True)
 
         data_path = os.path.join(args.dataset_path, data_id)
 
         # Prepare dataset
         test_features = load_features(
-            os.path.join(data_path, f"{data_id}_S2.csv"),
+            os.path.join(data_path, f"{data_id}_hit.csv"),
             os.path.join(data_path, f"{data_id}_trajectory.csv"),
             os.path.join(data_path, f"{data_id}_court.csv"),
         )
