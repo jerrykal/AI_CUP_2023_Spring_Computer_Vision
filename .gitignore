@@ -1,0 +1,11 @@
+datasets
+*.mp4
+runs
+*.jpg
+open-mmlab
+.venv
+mmskeleton
+mmdetection
+__pycache__
+saved
+poetry.lock

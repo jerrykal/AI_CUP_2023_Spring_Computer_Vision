@@ -1,0 +1,5 @@
+left_segment_size: 7
+right_segment_size: 7
+
+dataset_path: ./datasets/rally/train
+train_path: ./datasets/train
