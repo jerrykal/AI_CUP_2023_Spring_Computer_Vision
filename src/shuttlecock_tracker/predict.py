@@ -1,125 +1,93 @@
-# https://nol.cs.nctu.edu.tw:234/open-source/TrackNetv2
-
-import time
+# Derived from: https://github.com/wolfyeva/TrackNetV2/blob/main/predict.py
 
 import cv2
-import keras.backend as K
-import numpy as np
-from keras.layers import *
-from keras.models import *
-from tensorflow.keras.utils import array_to_img, img_to_array
-
-BATCH_SIZE = 1
-HEIGHT = 288
-WIDTH = 512
-# HEIGHT=360
-# WIDTH=640
-sigma = 2.5
-mag = 1
+import torch
+from utils import *
 
 
-def genHeatMap(w, h, cx, cy, r, mag):
-    if cx < 0 or cy < 0:
-        return np.zeros((h, w))
-    x, y = np.meshgrid(np.linspace(1, w, w), np.linspace(1, h, h))
-    heatmap = ((y - (cy + 1)) ** 2) + ((x - (cx + 1)) ** 2)
-    heatmap[heatmap <= r**2] = 1
-    heatmap[heatmap > r**2] = 0
-    return heatmap * mag
+def predict(video_file, model_file):
+    num_frame = 3
+    batch_size = 10
 
+    checkpoint = torch.load(model_file)
+    param_dict = checkpoint["param_dict"]
+    model_name = param_dict["model_name"]
+    num_frame = param_dict["num_frame"]
+    input_type = param_dict["input_type"]
 
-# Loss function
-def custom_loss(y_true, y_pred):
-    loss = (-1) * (
-        K.square(1 - y_pred) * y_true * K.log(K.clip(y_pred, K.epsilon(), 1))
-        + K.square(y_pred) * (1 - y_true) * K.log(K.clip(1 - y_pred, K.epsilon(), 1))
-    )
-    return K.mean(loss)
+    # Load model
+    model = get_model(model_name, num_frame, input_type).cuda()
+    model.load_state_dict(checkpoint["model_state_dict"])
+    model.eval()
 
+    # Cap configuration
+    cap = cv2.VideoCapture(video_file)
+    h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    success = True
+    frame_count = 0
+    num_final_frame = 0
+    ratio = h / HEIGHT
 
-def predict(video_name, load_weights):
-    model = load_model(load_weights, custom_objects={"custom_loss": custom_loss})
-    # model.summary()
-    print("Beginning predicting......")
-
-    start = time.time()
-
+    # Shuttlecock's coordinates
     coords = []
 
-    cap = cv2.VideoCapture(video_name)
-
-    success, image1 = cap.read()
-    success, image2 = cap.read()
-    success, image3 = cap.read()
-
-    ratio = image1.shape[0] / HEIGHT
-
     while success:
-        unit = []
-        # Adjust BGR format (cv2) to RGB format (PIL)
-        x1 = image1[..., ::-1]
-        x2 = image2[..., ::-1]
-        x3 = image3[..., ::-1]
-        # Convert np arrays to PIL images
-        x1 = array_to_img(x1)
-        x2 = array_to_img(x2)
-        x3 = array_to_img(x3)
-        # Resize the images
-        x1 = x1.resize(size=(WIDTH, HEIGHT))
-        x2 = x2.resize(size=(WIDTH, HEIGHT))
-        x3 = x3.resize(size=(WIDTH, HEIGHT))
-        # Convert images to np arrays and adjust to channels first
-        x1 = np.moveaxis(img_to_array(x1), -1, 0)
-        x2 = np.moveaxis(img_to_array(x2), -1, 0)
-        x3 = np.moveaxis(img_to_array(x3), -1, 0)
-        # Create data
-        unit.append(x1[0])
-        unit.append(x1[1])
-        unit.append(x1[2])
-        unit.append(x2[0])
-        unit.append(x2[1])
-        unit.append(x2[2])
-        unit.append(x3[0])
-        unit.append(x3[1])
-        unit.append(x3[2])
-        unit = np.asarray(unit)
-        unit = unit.reshape((1, 9, HEIGHT, WIDTH))
-        unit = unit.astype("float32")
-        unit /= 255
-        y_pred = model.predict(unit, batch_size=BATCH_SIZE)
-        y_pred = y_pred > 0.5
-        y_pred = y_pred.astype("float32")
-        h_pred = y_pred[0] * 255
-        h_pred = h_pred.astype("uint8")
-        for i in range(3):
-            if np.amax(h_pred[i]) <= 0:
-                coords.append((np.nan, np.nan))
+        print(f"Number of sampled frames: {frame_count}")
+        # Sample frames to form input sequence
+        frame_queue = []
+        for _ in range(num_frame * batch_size):
+            success, frame = cap.read()
+            if not success:
+                break
             else:
-                # h_pred
-                (cnts, _) = cv2.findContours(
-                    h_pred[i].copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
-                )
-                rects = [cv2.boundingRect(ctr) for ctr in cnts]
-                max_area_idx = 0
-                max_area = rects[max_area_idx][2] * rects[max_area_idx][3]
-                for i in range(len(rects)):
-                    area = rects[i][2] * rects[i][3]
-                    if area > max_area:
-                        max_area_idx = i
-                        max_area = area
-                target = rects[max_area_idx]
-                (cx_pred, cy_pred) = (
-                    int(ratio * (target[0] + target[2] / 2)),
-                    int(ratio * (target[1] + target[3] / 2)),
-                )
+                frame_count += 1
+                frame_queue.append(frame)
 
-                coords.append((cx_pred, cy_pred))
-        success, image1 = cap.read()
-        success, image2 = cap.read()
-        success, image3 = cap.read()
+        if not frame_queue:
+            break
 
-    end = time.time()
-    print("Prediction time:", end - start, "secs")
-    print("Done......")
+        # If mini batch incomplete
+        if len(frame_queue) % num_frame != 0:
+            frame_queue = []
+            # Record the length of remain frames
+            num_final_frame = len(frame_queue)
+            # Adjust the sample timestampe of cap
+            frame_count = frame_count - num_frame * batch_size
+            cap.set(cv2.CAP_PROP_POS_FRAMES, frame_count)
+            # Re-sample mini batch
+            for _ in range(num_frame * batch_size):
+                success, frame = cap.read()
+                if not success:
+                    break
+                else:
+                    frame_count += 1
+                    frame_queue.append(frame)
+            assert len(frame_queue) % num_frame == 0
+
+        x = get_frame_unit(frame_queue, num_frame)
+
+        # Inference
+        with torch.no_grad():
+            y_pred = model(x.cuda())
+        y_pred = y_pred.detach().cpu().numpy()
+        h_pred = y_pred > 0.5
+        h_pred = h_pred * 255.0
+        h_pred = h_pred.astype("uint8")
+        h_pred = h_pred.reshape(-1, HEIGHT, WIDTH)
+
+        for i in range(h_pred.shape[0]):
+            if num_final_frame > 0 and i < (num_frame * batch_size - num_final_frame):
+                # Special case of last incomplete mini batch
+                # Igore the frame which is already written to the output video
+                continue
+            else:
+                img = frame_queue[i].copy()
+                cx_pred, cy_pred = get_object_center(h_pred[i])
+                cx_pred, cy_pred = int(ratio * cx_pred), int(ratio * cy_pred)
+                vis = True if cx_pred > 0 and cy_pred > 0 else False
+
+                coords.append((cx_pred, cy_pred) if vis else (np.nan, np.nan))
+
+    print("Done!")
 
     return np.array(coords)
