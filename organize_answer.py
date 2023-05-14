@@ -62,6 +62,8 @@ def main(args):
         df_hit = pd.read_csv(os.path.join(data_path, f"{data_id}_hit.csv"))
         df_pose = pd.read_csv(os.path.join(data_path, f"{data_id}_player_poses.csv"))
         df_shot_type = pd.read_csv(os.path.join(data_path, f"{data_id}_shot_type.csv"))
+        df_round_head = pd.read_csv(os.path.join(data_path, f"{data_id}_round_head.csv"))
+        df_backhand = pd.read_csv(os.path.join(data_path, f"{data_id}_backhand.csv"))
         for _, row in df_hit.iterrows():
             # Extract hit frame image
             cap.set(cv2.CAP_PROP_POS_FRAMES, row["HitFrame"])
@@ -104,8 +106,12 @@ def main(args):
                 "ShotSeq": row["ShotSeq"],
                 "HitFrame": row["HitFrame"],
                 "Hitter": row["Hitter"],
-                "RoundHead": 0,
-                "Backhand": 0,
+                "RoundHead": df_round_head[df_round_head["ShotSeq"] == row["ShotSeq"]][
+                    "RoundHead"
+                ].values[0],
+                "Backhand": df_backhand[df_backhand["ShotSeq"] == row["ShotSeq"]][
+                    "Backhand"
+                ].values[0],
                 "BallHeight": 1
                 if (
                     player_poses[1 if row["Hitter"] == "A" else 0][6][1]
