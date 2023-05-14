@@ -7,7 +7,7 @@ class BackhandClassifier(nn.Module):
         input_size=11,
         hidden_size=128,
         num_layers=2,
-        num_classes=9,
+        num_classes=2,
         dropout_prob=0.5,
     ):
         super().__init__()
