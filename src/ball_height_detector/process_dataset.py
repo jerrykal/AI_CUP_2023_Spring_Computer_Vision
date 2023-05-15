@@ -3,13 +3,13 @@ from argparse import ArgumentParser
 
 import pandas as pd
 import torch
-from dataset import ShotTypeDataset, load_features
+from dataset import BallHeightDataset, load_features
 
-from model import ShotTypeClassifier
+from model import BallHeightClassifier
 
 
 def main(args):
-    model = ShotTypeClassifier(
+    model = BallHeightClassifier(
         input_size=11,
         hidden_size=args.hidden_size,
         num_layers=args.num_layers,
@@ -27,20 +27,20 @@ def main(args):
             os.path.join(data_path, f"{data_id}_trajectory.csv"),
             os.path.join(data_path, f"{data_id}_court.csv"),
         )
-        dataset = ShotTypeDataset(test_features)
+        dataset = BallHeightDataset(test_features)
 
         # Inference
-        df_shot_type = pd.DataFrame(columns=["ShotSeq", "BallType"])
+        df_ball_height = pd.DataFrame(columns=["ShotSeq", "BallHeight"])
         model.eval()
         with torch.no_grad():
             for i, features in enumerate(dataset):
-                shot_type = model(features.unsqueeze(0).to(args.device)).argmax().item()
+                ball_height = model(features.unsqueeze(0).to(args.device)).argmax().item()
 
-                df_shot_type.loc[len(df_shot_type)] = [i + 1, shot_type + 1]
+                df_ball_height.loc[len(df_ball_height)] = [i + 1, ball_height + 1]
 
         # Save the result
-        csv_path = os.path.join(data_path, f"{data_id}_shot_type.csv")
-        df_shot_type.to_csv(csv_path, index=False)
+        csv_path = os.path.join(data_path, f"{data_id}_ball_height.csv")
+        df_ball_height.to_csv(csv_path, index=False)
 
         print("Done!")
 
@@ -52,8 +52,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu"
     )
-    parser.add_argument("--hidden_size", type=int, default=128)
-    parser.add_argument("--num_layers", type=int, default=2)
+    parser.add_argument("--hidden_size", type=int, default=256)
+    parser.add_argument("--num_layers", type=int, default=4)
     args = parser.parse_args()
 
     main(args)
