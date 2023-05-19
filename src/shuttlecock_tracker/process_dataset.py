@@ -96,23 +96,12 @@ def main(args):
             video_path = mask_amateur_vid(video_path)
 
         coords = predict(video_path, load_weights)
-        smoothed_coords = smooth_trajectory(coords)
+        coords = smooth_trajectory(coords)
 
         output_file = f"{data}_trajectory.csv"
         output_path = os.path.join(data_path, output_file)
 
         with open(output_path, "w") as f:
-            f.write("Frame,Visibility,X,Y\n")
-            for frame, coord in enumerate(smoothed_coords):
-                if np.isnan(coord).any():
-                    f.write(f"{frame},0,0,0\n")
-                else:
-                    f.write(f"{frame},1,{int(coord[0])},{int(coord[1])}\n")
-
-        output_file_no_smooth = f"{data}_trajectory_no_smooth.csv"
-        output_path_no_smooth = os.path.join(data_path, output_file_no_smooth)
-
-        with open(output_path_no_smooth, "w") as f:
             f.write("Frame,Visibility,X,Y\n")
             for frame, coord in enumerate(coords):
                 if np.isnan(coord).any():
@@ -121,12 +110,7 @@ def main(args):
                     f.write(f"{frame},1,{int(coord[0])},{int(coord[1])}\n")
 
         if save_video:
-            plot_shuttle_cock(
-                smoothed_coords, video_path, output_path.replace(".csv", ".mp4")
-            )
-            plot_shuttle_cock(
-                coords, video_path, output_path_no_smooth.replace(".csv", ".mp4")
-            )
+            plot_shuttle_cock(coords, video_path, output_path.replace(".csv", ".mp4"))
 
 
 if __name__ == "__main__":
