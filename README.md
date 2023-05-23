@@ -96,15 +96,15 @@ Each of the newly generated csv files are used in the next step to train our mod
 ## Training
 
 ```shell
-$ python src/hit_detector/train.py --train_dataset data/train --val_dataset data/val --concat_n 14 --stepsize 1 --batch_size 256 --num_epoch 500
-$ python src/shot_type_classifier/train.py --train_dataset data/train --val_dataset data/val --num_epoch 300 --hidden_size 128 --batch_size 32
-$
-$
+$ python src/hit_detector/train.py --train_dataset data/train --val_dataset data/val
+$ python src/shot_type_classifier/train.py --train_dataset data/train --val_dataset data/val
+$ python src/player_backhand_detector/train.py --train_dataset data/train --val_dataset data/val
+$ python src/player_roundhead_detector/train.py --train_dataset data/train --val_dataset data/val
 ```
 
 All the model's check points and logs should be saved under the `saved` directory.
 
-The hyperparameters are passed as command-line arguments. The ones provided above are the hyperparameters we used to train our final models for the competition. Feel free to modify and experiment with them. Please refer to the `train.py` scripts of each model for the list of adjustable hyparameters.
+The hyperparameters can be passed as command-line arguments. Feel free to modify and experiment with them. Refer to the `train.py` scripts of each model for the list of adjustable hyparameters.
 
 ## Inference
 
@@ -120,8 +120,8 @@ Use the models trained from the last step which are saved under `saved/<ModelNam
 ```shell
 $ python src/hit_detector/process_dataset.py --dataset_path data/test --model_path <path_to_pre_trained_hit_detector_model> --concat_n 14 --conf_threshold 0.8
 $ python src/shot_type_classifier/process_dataset.py --dataset_path data/test --model_path <path_to_pre_trained_shot_type_classifier_model>
-$
-$
+$ python src/player_backhand_detector/process_dataset.py --dataset_path data/test --model_path <path_to_pre_trained_back_hand_detector_model>
+$ python src/player_roundhead_detector/process_dataset.py --dataset_path data/test --model_path <path_to_pre_trained_round_head_detector_model>
 ```
 
 Some new csv files should be generated under the `data/test/<data_id>` directory, each containing inference results from our models.
