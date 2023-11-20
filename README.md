@@ -18,7 +18,7 @@ mim install mmengine "mmcv>=2.0.0" "mmdet>=3.0.0" "mmpose>=1.0.0"
 
 ## Data
 
-Download the dataset from the competition official and put the data under the `data` directory. Rename the `data/val` directory to `data/test`. Then manually split the data in `data/train` into training and validation set and store them in `data/train` and `data/val` respectively.
+Download the dataset from the competition official and put the data under the `data` directory. Rename the `data/val` directory to `data/test`. Then manually/programmatically split the data in `data/train` into training and validation set and store them in `data/train` and `data/val` respectively.
 
 The resulting dataset should have the following structure:
 
@@ -37,18 +37,18 @@ data
      	 └── <data_id>.mp4
 ```
 
-Where `<data_id>.mp4` are video clips of a single rally, and `<data_id>_S2.csv` is the ground truth labels provided by the official. The data under `data/test` are used for evaluating our models' performance by the official, thus it does not contain any ground truth files. Our final goal is to train our models to be able to generate these labels ourself.
+Where `<data_id>.mp4` are video clips of a single rally, and `<data_id>_S2.csv` is the ground truth labels provided by the official. The data under `data/test` are used for evaluating our models' performance by the official, thus it does not contain any ground truth files. Our final goal is to train our models to be able to predict these labels ourself.
 
 ## Data Preprocessing
 
-Before starting to train our models, we need to first preprocess the dataset to extract out useful informations from the videos. Namely, the coordinate of shuttlecock, court corners and key points of both player's poses per-frame.
+Before starting to train our models, we need to first preprocess the dataset to extract useful informations from the videos. Namely, the coordinate of shuttlecock, court corners and key points of both player's poses per-frame.
 
 First, download the pre-trained model for [`TrackNetV2`](https://drive.google.com/file/d/1_mrzOAAGsn2DAI7T1igJ9pYKabV278lb/view) and place it wherever you want, then run the following commands in the shell line-by-line to preprocess our data:
 
 ```shell
-$ python src/shuttlecock_tracker_improved/process_dataset.py --dataset_path data/train --load_weights <path_to_pre_trained_tracknet_model>
-$ python src/shuttlecock_tracker_improved/process_dataset.py --dataset_path data/val --load_weights <path_to_pre_trained_tracknet_model>
-$ python src/shuttlecock_tracker_improved/process_dataset.py --dataset_path data/test --load_weights <path_to_pre_trained_tracknet_model>
+$ python src/shuttlecock_tracker/process_dataset.py --dataset_path data/train --load_weights <path_to_pre_trained_tracknet_model>
+$ python src/shuttlecock_tracker/process_dataset.py --dataset_path data/val --load_weights <path_to_pre_trained_tracknet_model>
+$ python src/shuttlecock_tracker/process_dataset.py --dataset_path data/test --load_weights <path_to_pre_trained_tracknet_model>
 $ python src/court_detector/process_dataset.py --dataset_path data/train
 $ python src/court_detector/process_dataset.py --dataset_path data/val
 $ python src/court_detector/process_dataset.py --dataset_path data/test
@@ -60,7 +60,7 @@ $ python src/hit_detector/organize_xy.py --data_dir data/val
 $ python src/hit_detector/organize_xy.py --data_dir data/test
 ```
 
-The data structure should looks like the following after this step:
+The dataset structure should looks like the following after this step:
 
 ```
 data
